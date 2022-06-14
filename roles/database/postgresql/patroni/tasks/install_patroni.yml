@@ -1,0 +1,108 @@
+---
+- name: Postgresql-patroni | create patroni dir
+  file:
+    path: "{{ patroni_dir }}/patroni"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+
+- name: Postgresql-patroni | update python3 and pip3
+  shell: "yum install -y python3 python3-devel python3-pip libpq-devel"
+
+
+#以下两个包无需区分架构
+- name: Postgresql-patroni | pip install psutil and ydiff
+  shell: "pip3 install {{ item }}"
+  args:
+    chdir: "{{ untar_package_dir }}/patroni-etcd"
+  loop: "{{ pip_install_pkg_1 }}"
+
+- name: Postgresql-patroni | pip install PyYAML
+  shell: "pip3 install PyYAML-6.0.tar.gz --no-index --find-links {{ untar_package_dir }}/patroni-etcd/ -- setuptools wheel Cython"
+  vars:
+    arch: "{{ host_architecture }}"
+  args:
+    chdir: "{{ untar_package_dir }}/patroni-etcd/"
+  when: arch == "arm64"
+
+- name: Postgresql-patroni | pip install PyYAML
+  shell: "pip3 install PyYAML-6.0-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl"
+  vars:
+    arch: "{{ host_architecture }}"
+  args:
+    chdir: "{{ untar_package_dir }}/patroni-etcd/"
+  when: arch == "amd64"
+
+- name: Postgresql-patroni | pip install *.whl and python-etcd
+  shell: "pip3 install {{ item }}"
+  args:
+    chdir: "{{ untar_package_dir }}/patroni-etcd/"
+  loop: "{{ pip_install_pkg_2 }}"
+
+#无需区分架构
+- name: Postgresql-patroni | pip install psycopg2_binary
+  shell: "pip3 install {{ psycopg2_binary }}"
+  args:
+    chdir: "{{ untar_package_dir }}/psycopg2-binary/"
+
+#无需区分架构
+- name: Postgresql-patroni | pip install psycopg2
+  shell: "pip3 install {{ psycopg2 }}"
+  args:
+    chdir: "{{ untar_package_dir }}/psycopg2/"
+
+# master节点操作
+- name: Postgresql-patroni | master apply master_patroni_config.yml.j2
+  template:
+    src: master_patroni_config.yml.j2
+    dest: "{{ patroni_dir }}/patroni/patroni_config.yml"
+    owner: postgres
+    group: postgres
+    mode: 0600
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+#slave节点操作
+- name: Postgresql-patroni | slave apply replica_patroni_config.yml.j2
+  template:
+    src: replica_patroni_config.yml.j2
+    dest: "{{ patroni_dir }}/patroni/patroni_config.yml"
+    owner: postgres
+    group: postgres
+    mode: 0600
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+#所有节点操作
+- name: Postgresql-patroni | chmod /usr/local/lib/python3.7/site-packages to 755 to avoid postgres user's not permission
+  shell: "chmod -R 755 /usr"
+
+- name: Postgresql-patroni | apply patroni.service.j2
+  template:
+    src: patroni.service.j2
+    dest: /usr/lib/systemd/system/patroni.service
+    owner: root
+    group: root
+- name: Postgresql-patroni | daemon reload
+  shell: "systemctl daemon-reload"
+
+- name: Postgresql-patroni | start patroni service
+  service:
+    name: patroni
+    state: restarted
+    enabled: yes
+
+- name: Postgresql-patroni | sleep 10s
+  shell: "sleep 10"
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- shell: "patronictl -c {{ patroni_dir }}/patroni/patroni_config.yml list"
+  register: patroni_cluster
+  when:
+    - inventory_hostname == groups['postgres'][0]
+- debug:
+    msg: "{{ patroni_cluster.stdout }}"
+  when:
+    - inventory_hostname == groups['postgres'][0]

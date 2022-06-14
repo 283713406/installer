@@ -1,0 +1,26 @@
+! Configuration File for keepalived
+
+global_defs {
+   router_id {{ ansible_fqdn }}
+   script_user root
+   enable_script_security
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface {{ ansible_default_ipv4.interface }}
+    virtual_router_id {{ virtual_router_id }}
+{% if inventory_hostname == groups['postgres'][1] %}
+    priority 90
+{% elif inventory_hostname == groups['postgres'][2] %}
+    priority 80
+{% endif %}
+    advert_int 5
+    authentication {
+        auth_type PASS
+        auth_pass postgres
+    }
+    virtual_ipaddress {
+        {{ virtual_ip }} dev {{ ansible_default_ipv4.interface }}  label {{ ansible_default_ipv4.interface }}:1
+    }
+}

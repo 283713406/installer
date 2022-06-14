@@ -1,0 +1,47 @@
+---
+- name: Postgresql-keepalived | test virtual_ip unused,exec ping
+  shell: "ping -c 3 {{ virtual_ip }}"
+  register: ping_result
+  failed_when: false
+  when: inventory_hostname == groups['k8s-master'][0]
+
+- name: Postgresql-keepalived | test virtual_ip unused,test ping result
+  debug:
+    msg: "please set virtual_ip to unused ip address"
+  failed_when: true
+  when: inventory_hostname == groups['k8s-master'][0] and ping_result.rc == 0
+
+- name: Postgresql-keepalived | install keepalived
+  shell: "yum install -y keepalived"
+
+- name: Postgresql-keepalived | master apply keepalived-master.j2
+  template:
+    src: keepalived-master.j2
+    dest: /etc/keepalived/keepalived.conf
+    mode: 0644
+    owner: root
+    group: root
+  when: inventory_hostname == groups['k8s-master'][0]
+
+- name: Postgresql-keepalived | master start keepalived.conf server
+  service:
+    name: keepalived
+    state: restarted
+    enabled: yes
+  when: inventory_hostname == groups['k8s-master'][0]
+
+- name: Postgresql-keepalived | slave apply keepalived-backup.j2
+  template:
+    src: keepalived-backup.j2
+    dest: /etc/keepalived/keepalived.conf
+    mode: 0644
+    owner: root
+    group: root
+  when: inventory_hostname == groups['k8s-master'][1] or inventory_hostname == groups['k8s-master'][2]
+
+- name: Postgresql-keepalived | slave start keepalived.conf server
+  service:
+    name: keepalived
+    state: restarted
+    enabled: yes
+  when: inventory_hostname == groups['k8s-master'][1] or inventory_hostname == groups['k8s-master'][2]

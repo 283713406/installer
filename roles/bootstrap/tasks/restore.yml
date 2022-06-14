@@ -1,0 +1,45 @@
+---
+# 恢复备份文件
+# file_name must be like '/etc/docker/daemon.json'
+- name: "Backup restore | Find all files named {{ file_name }}"
+  find:
+    recurse: no
+    paths:
+      - "{{ file_name | dirname }}"
+    patterns:
+      - '{{ file_name | basename }}\..*~'
+    use_regex: true
+  register: backup_file
+
+- name: "Backup restore | Find the latest file named {{ file_name }}"
+  set_fact:
+    latest_backup: "{{ (backup_file.files | sort(attribute='mtime') | last).path }}"
+  when: backup_file.files | length > 0
+
+- name: "Backup restore | Backup file {{file_name}}"
+  copy:
+    src: "{{ file_name }}"
+    remote_src: true
+    dest: "{{ file_name }}.installer"
+
+- name: "Backup restore | Restore the latest backup file {{file_name}}"
+  copy:
+    src: "{{ latest_backup }}"
+    remote_src: true
+    dest: "{{ file_name }}"
+  when:
+    - file_name != "/etc/docker/daemon.json"
+    - latest_backup is defined
+
+- name: "Backip restore | Remove daemon.json"
+  file:
+    path: "{{ file_name }}"
+    state: absent
+  notify: restart docker
+  when: file_name == "/etc/docker/daemon.json"
+
+- name: "Backip restore | Remove backup file"
+  file:
+    path: "{{ latest_backup }}"
+    state: absent
+  when: latest_backup is defined

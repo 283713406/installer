@@ -1,0 +1,61 @@
+---
+- name: NFS | Create nfs directory if they don't exist
+  file:
+    path: "{{ nfs_dir }}"
+    state: directory
+    mode: 0775
+
+- name: NFS | Create tianyu directory if they don't exist
+  file:
+    path: "{{ nfs_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+  with_items:
+    - "{{ tianyu_dir }}"
+
+- name: NFS | Extract apt-data.tar.gz into NFS_PATH
+  unarchive:
+    src: "apt-data.tar.gz"
+    dest: "{{ nfs_dir }}/data/"
+
+- name: NFS | Create repo directory if they don't exist
+  file:
+    path: "{{ nfs_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - "{{ repo_dir }}"
+
+#- name: create repo file path
+#  shell: mkdir -p {{ nfs_dir }}/{{item}}
+#  with_items: [ psql/psql-data-0 psql/psql-data-1 psql/psql-data-2 krmp/dynflow-data krmp/repo-data krmp/repo-conf ]
+- name: NFS | Create softshop directory if they don't exist
+  file:
+    path: "{{ nfs_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - "{{ softshop_dir }}"
+
+- name: NFS | Umask file path
+  shell: cd {{ nfs_dir }}; umask 0022
+  notify:
+    - start rpcbind
+    - start nfs-server
+
+- name: NFS | Content NFS Server
+  copy:
+    content: "{{ nfs_dir }} *(rw,sync,no_root_squash)"
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart nfs-server
+    - enable nfs-server

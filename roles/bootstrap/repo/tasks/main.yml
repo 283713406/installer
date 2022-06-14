@@ -1,0 +1,25 @@
+---
+- name: Yum Repository | Check yum.repos.d exists
+  stat: path=/etc/yum.repos.d
+  register: repos_stat
+
+- name: Yum Repository | Backup yum.repos.d
+  command: mv -f --backup=numbered /etc/yum.repos.d /etc/yum.repos.d.installer
+  when: repos_stat.stat.exists
+  # 忽略复用节点移动文件不存在的问题
+  ignore_errors: yes
+
+- name: Yum Repository | Create yum.repos.d
+  file:
+    path: /etc/yum.repos.d/
+    state: directory
+
+- name: Yum Repository | Add kylincloud repo
+  yum_repository:
+    name: kylincloud
+    description: registry.kylincloud.org repo in deploy
+    file: kylincloud
+    gpgcheck: no
+    baseurl: "{{ baseurl }}"
+    enabled: yes
+

@@ -1,0 +1,43 @@
+install_apps: false
+install_bootstrap: true
+install_database: false
+install_nfs: true
+
+uninstall_bootstrap: false
+uninstall_database: false
+uninstall_nfs: false
+
+## 使用客户提供的NFS服务场景时nfs_exist为true，否则为false
+nfs_exist: false
+## 使用客户提供的NFS服务场景需要填写remote_nfs_server、remote_nfs_path参数，参数具体值为客户提供的NFS服务的值
+remote_nfs_server: 172.20.144.235
+remote_nfs_path: /opt/nfs
+
+## nfs_exist为false时需要配置，默认不需要修改
+nfs_dir: /opt/nfs
+
+tianyu_dir:
+  - data/log
+  - data/crt
+  - data/apt-data
+  - data/ipa
+  - data/kim-sync
+  - data/.ssh
+
+repo_dir:
+  - psql/psql-data-0
+  - psql/psql-data-1
+  - psql/psql-data-2
+  - krmp/dynflow-data
+  - krmp/repo-data
+  - krmp/repo-conf
+  - krmp/repo-data/assets
+  - krmp/repo-data/media
+  - krmp/repo-data/tmp
+  - krmp/repo-data/media/artifact
+  - krmp/repo-data/media/upload
+  - krmp/repo-conf/tmp
+
+softshop_dir:
+  - manage/package
+

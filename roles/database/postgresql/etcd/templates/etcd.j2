@@ -1,0 +1,17 @@
+{{ etcd_dir }}/app/etcd/etcd --data-dir=data.etcd \
+  --name {{ etcd_member_name }} \
+  --listen-peer-urls http://{{ ansible_default_ipv4.address }}:2380 \
+  --listen-client-urls http://{{ ansible_default_ipv4.address }}:2379,http://127.0.0.1:2379 \
+  --initial-advertise-peer-urls http://{{ ansible_default_ipv4.address }}:2380 \
+  --advertise-client-urls http://{{ ansible_default_ipv4.address }}:2379 \
+  --initial-cluster-token etcd-cluster-pgtest \
+  --initial-cluster {{ etcd_peer_addresses }} \
+  --initial-cluster-state new \
+  --enable-v2
+
+
+
+
+
+
+

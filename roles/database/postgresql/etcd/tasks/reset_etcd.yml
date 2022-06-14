@@ -1,0 +1,22 @@
+---
+- name: Postgresql-etcd-reset | remove host entries from /etc/hosts
+  blockinfile:
+    path: "/etc/hosts"
+    state: absent
+    marker: "# Postgresql inventory hosts {mark}"
+
+- name: Postgresql-etcd-reset | stop etcd service
+  service:
+    name: etcd
+    state: stopped
+  failed_when: false
+
+- name: Postgresql-etcd-reset | remove etcd and etcd package directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ etcd_dir }}/app"
+    - "{{ untar_package_dir }}"
+    - /usr/lib/systemd/system/etcd.service
+    - /data.etcd

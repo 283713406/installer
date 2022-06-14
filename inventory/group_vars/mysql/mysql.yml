@@ -1,0 +1,13 @@
+reset_mysql: false
+
+#数据库所有权限账号
+dbinit_user: dbinit
+dbinit_password: 123456
+
+#maxscale监控账号
+maxscale_monitor_user: maxscale_monitor
+maxscale_monitor_password: 123456
+
+#maxscale路由账号
+maxscale_route_user: maxscale_route
+maxscale_route_password: 123456

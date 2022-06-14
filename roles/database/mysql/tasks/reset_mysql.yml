@@ -1,0 +1,15 @@
+---
+- name: Mysql | stop mariadb service
+  service:
+    name: mariadb
+    state: stopped
+  failed_when: false
+
+- name: Mysql | remove mysql files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/my.cnf
+    - /usr/local/bin/mysql-master-exec.sh
+    - /usr/local/bin/mysql-slave-exec.sh

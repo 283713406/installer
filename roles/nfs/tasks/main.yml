@@ -1,0 +1,15 @@
+---
+- name: NFS | Install nfs
+  include_tasks: install-nfs.yml
+  when:
+    - install_nfs
+    - not nfs_exist
+- name: NFS | Install nfs exist nfs
+  include_tasks: install-nfs-exist.yml
+  when:
+    - install_nfs
+    - nfs_exist
+- name: NFS | Reset nfs
+  include_tasks: reset-nfs.yml
+  when:
+    - uninstall_nfs

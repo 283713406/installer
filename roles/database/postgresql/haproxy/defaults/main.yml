@@ -1,0 +1,3 @@
+package: "/root/psql-{{ host_architecture }}.tar.gz"
+untar_package_dir: /opt/postgresql/package
+haproxy_dir: /home/postgres

@@ -1,0 +1,5 @@
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
+roles/database/postgresql/share-files/files/ filter=lfs diff=lfs merge=lfs -text
+roles/database/postgresql/share-files/files/psql-arm64.tar.gz filter=lfs diff=lfs merge=lfs -text
+roles/database/postgresql/share-files/files/psql-amd64.tar.gz filter=lfs diff=lfs merge=lfs -text
+roles/dbinit/files/kylin_softshop_init_db.sql filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,26 @@
+- hosts: ssh-init
+  remote_user: root
+  vars:
+    - name: "ssh-init"
+  tasks:
+    - name: "1.初始化"
+      shell: rm -rf ~/.ssh/* &&  echo {{item.key}} {{item.value.ansible_hostname}}  >> /etc/hosts
+      with_dict: "{{hostvars}}"
+      #不打印日志
+      no_log: True
+      #局部打印日志
+      #loop_control:
+         #label: ""
+    - name: "2.生成新的公钥和私钥"
+      shell: ssh-keygen -t rsa -b 2048 -P "" -f ~/.ssh/id_rsa
+    - name: "3.拷贝远程公钥到本机"
+      fetch: src=~/.ssh/id_rsa.pub dest=~/.ssh/rsa/ force=yes
+    - name: "4.同步证书到其他主机"
+      copy: src=~/.ssh/rsa dest=~/.ssh/ mode=0644
+    - name: "5.合并密钥"
+      shell: cat ~/.ssh/rsa/*/root/.ssh/id_rsa.pub > ~/.ssh/authorized_keys
+    - name: "6.添加known_hosts"
+      shell:  ssh-keyscan {{item}} >> /root/.ssh/known_hosts
+      with_items: "{{play_hosts}}"
+    - name: "7.清理临时数据"
+      shell: rm -rf  ~/.ssh/rsa && echo "结束"

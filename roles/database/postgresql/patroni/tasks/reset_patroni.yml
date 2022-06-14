@@ -1,0 +1,15 @@
+---
+- name: Postgresql-patroni-reset | stop patroni service
+  service:
+    name: patroni
+    state: stopped
+  failed_when: false
+
+- name: Postgresql-patroni-reset | remove patroni and patroni package directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ untar_package_dir }}"
+    - "{{ patroni_dir }}/patroni"
+    - /usr/lib/systemd/system/patroni.service

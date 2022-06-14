@@ -1,0 +1,26 @@
+---
+- name: Postgresql-pg-reset | remove environment var entries from /etc/profile
+  blockinfile:
+    path: "/etc/profile"
+    state: absent
+    marker: "# Postgresql environment var {mark}"
+- name: Postgresql-pg | source /etc/profile
+  shell: "source /etc/profile"
+
+- name: Postgresql-pg-reset | remove pg and pg package directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ pg_dir }}/pgdata"
+    - "{{ pg_dir }}/pgwal"
+    - "{{ pg_dir }}/pgarch"
+    - "{{ pg_dir }}/pglog"
+    - "{{ untar_package_dir }}"
+    - "{{ pg_dir }}/.ssh/authorized_keys"
+    - "{{ pg_dir }}/.pgpass"
+    - "{{ pg_dir }}/.dbpass"
+    - /var/run/postgresql/
+    - /usr/lib/systemd/system/postgresql.service
+    - /usr/share/pgsql/extension/evr.control
+    - /usr/share/pgsql/extension/evr--0.0.2.sql

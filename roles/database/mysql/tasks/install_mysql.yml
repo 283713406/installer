@@ -1,0 +1,101 @@
+---
+- name: Mysql | querry firewalld
+  shell: "rpm -q firewalld"
+  failed_when: false
+  register: firewalld_pkg
+
+- name: Mysql | stop firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  when:
+    - firewalld_pkg.rc == 0
+
+- name: Mysql | install  mariadb and mariadb-server
+  shell: "yum install -y mariadb mariadb-server"
+
+- name: Mysql | master apply mysql-master.cnf.j2
+  template:
+    src: mysql-master.cnf.j2
+    dest: /etc/my.cnf
+    mode: 0644
+    owner: root
+    group: root
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | master start mariadb service
+  service:
+    name: mariadb
+    state: restarted
+    enabled: yes
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | master apply mysql-master-exec.sh.j2
+  template:
+    src: mysql-master-exec.sh.j2
+    dest: /usr/local/bin/mysql-master-exec.sh
+    owner: root
+    mode: 0750
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | master exec initial mysql script
+  shell: "mysql-master-exec.sh"
+  args:
+    executable: /bin/bash
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | slave apply mysql-slave.cnf.j2
+  template:
+    src: mysql-slave.cnf.j2
+    dest: /etc/my.cnf
+    mode: 0644
+    owner: root
+    group: root
+  when:
+    - inventory_hostname != groups['mysql'][0]
+
+- name: Mysql | slave start mariadb service
+  service:
+    name: mariadb
+    state: restarted
+    enabled: yes
+  when:
+    - inventory_hostname != groups['mysql'][0]
+
+- name: Mysql | slave apply mysql-slave-exec.sh.j2
+  template:
+    src: mysql-slave-exec.sh.j2
+    dest: /usr/local/bin/mysql-slave-exec.sh
+    owner: root
+    mode: 0750
+  when:
+    - inventory_hostname != groups['mysql'][0]
+
+- name: Mysql | slave exec initial mysql script
+  shell: "mysql-slave-exec.sh"
+  args:
+    executable: /bin/bash
+  when:
+    - inventory_hostname != groups['mysql'][0]
+
+- name: Mysql | master sleep 15s
+  shell: "sleep 15"
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | master test mysql cluster whether ok or not
+  shell: "mysql -e \"show slave hosts;\""
+  register: mysql_cluster
+  when:
+    - inventory_hostname == groups['mysql'][0]
+
+- name: Mysql | debug master test mysql cluster result out
+  debug:
+    msg: "{{ mysql_cluster.stdout }}"
+  when:
+    - inventory_hostname == groups['mysql'][0]

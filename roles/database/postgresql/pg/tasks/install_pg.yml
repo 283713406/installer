@@ -1,0 +1,260 @@
+---
+# avoid initdb error because of not empty pgdata and pgwal dir
+- name: Postgresql-pg | remove pgdata and pgwal
+  file:
+    path: "{{ pg_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - pgdata
+    - pgwal
+    - pgarch
+    - pglog
+
+- name: Postgresql-pg | create directory
+  file:
+    path: "{{ pg_dir }}/{{ item }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+  loop:
+    - pgdata
+    - pgwal
+    - pgarch
+    - pglog
+
+- name: Postgresql-pg | set enviroment var
+  blockinfile:
+    path: /etc/profile
+    block: |
+      export LANG=en_US.utf8
+      export PGUSER=postgres
+      export PGPORT=5432
+      export PGDATA={{ pg_dir }}/pgdata
+    marker: "# Postgresql environment var {mark}"
+    state: present
+
+- name: Postgresql-pg | source /etc/profile
+  shell: "source /etc/profile"
+
+- name: Postgresql-pg | install packages
+  shell: "yum install -y postgresql postgresql-server postgresql-contrib libpq readline uuid libxslt"
+  vars:
+    arch: "{{ host_architecture }}"
+  when:
+    - arch == "arm64"
+
+- name: Postgresql-pg | install packages
+  shell: "yum install -y postgresql postgresql-server postgresql-contrib libpq readline uuid"
+  vars:
+    arch: "{{ host_architecture }}"
+  when:
+    - arch == "amd64"
+
+
+- name: Postgresql-pg | register the local pubkey
+  shell: "cat /root/.ssh/id_rsa.pub"
+  register: pubkey
+  delegate_to: localhost
+  connection: local
+  delegate_facts: yes
+  run_once: yes
+
+- name: Postgresql-pg | config postgres user openssh
+  lineinfile:
+    path: "{{ pg_dir }}/.ssh/authorized_keys"
+    line: "{{ pubkey.stdout }}"
+    state: present
+    create: yes
+    mode: 0644
+    owner: postgres
+    group: postgres
+
+- name: Postgresql-pg | apply password.j2 file
+  template:
+    src: password.j2
+    dest: "{{ pg_dir }}/.pgpass"
+    mode: 0600
+    owner: postgres
+    group: postgres
+  become: true
+  become_method: su
+  become_user: postgres
+
+# postgresql控制节点执行操作
+- name: Postgresql-pg | master init db to create passwd file
+  copy:
+    content: 123123
+    dest: "{{ pg_dir }}/.dbpass"
+    owner: postgres
+    group: postgres
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master exec initdb command
+  shell: "initdb --pgdata={{ pg_dir }}/pgdata --waldir={{ pg_dir }}/pgwal --encoding=UTF8 --allow-group-access --data-checksums --username=postgres --pwfile={{ pg_dir }}/.dbpass --wal-segsize=32"
+  register: init_result
+  run_once: true
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master configure sql
+  template:
+    src: postgresql.auto.conf.j2
+    dest: "{{ pg_dir }}/pgdata/postgresql.auto.conf"
+    owner: postgres
+    group: postgres
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master modify pg_hba.conf
+  lineinfile:
+    path: "{{ pg_dir }}/pgdata/pg_hba.conf"
+    insertafter: "host    all             all             ::1/128                 trust"
+    line: "host    all             all             0.0.0.0/0               md5"
+    state: present
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master modify pg_hba.conf
+  lineinfile:
+    path: "{{ pg_dir }}/pgdata/pg_hba.conf"
+    insertafter: "local   replication     all                                     trust"
+    line: "host    replication     replica         0.0.0.0/0               md5"
+    state: present
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master modify postgresql.conf
+  lineinfile:
+    path: "{{ pg_dir }}/pgdata/postgresql.conf"
+    regexp: "^#listen_addresses = 'localhost'"
+    line: "listen_addresses = '*'"
+    state: present
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master make dir /var/run/postgresql/
+  file:
+    path: /var/run/postgresql/
+    state: directory
+    owner: postgres
+    group: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master configure postgresql service
+  template:
+    src: postgresql.service.j2
+    dest: /usr/lib/systemd/system/postgresql.service
+    owner: root
+    group: root
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master postgresql daemon reload
+  shell: "systemctl daemon-reload"
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master start postgresql service
+  service:
+    name: postgresql
+    state: restarted
+    enabled: no
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master install pg_stat_statements
+  shell: "psql -c 'create extension pg_stat_statements;'"
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+- name: Postgresql-pg | master ensure pg_stat_statements
+  shell:
+    cmd: psql -c "create user replica WITH REPLICATION ENCRYPTED PASSWORD 'replica';"
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname == groups['postgres'][0]
+
+# postgresql slave节点执行操作
+- name: Postgresql-pg | slave init db
+  shell: "pg_basebackup -h {{ hostvars[groups['postgres'][0]]['ansible_facts']['default_ipv4']['address'] }} -p 5432 -U replica -D {{ pg_dir }}/pgdata -Fp -P -X stream -R -v -l replica_20220401"
+  become: true
+  become_method: su
+  become_user: postgres
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+- name: Postgresql-pg | slave configure postgresql service
+  template:
+    src: postgresql.service.j2
+    dest: /usr/lib/systemd/system/postgresql.service
+    owner: root
+    group: root
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+- name: Postgresql-pg | slave create /var/run/postgresql/ dir
+  file:
+    path: /var/run/postgresql/
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+- name: Postgresql-pg | slave postgresql daemon reload
+  shell: "systemctl daemon-reload"
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+- name: Postgresql-pg | slave start postgresql service
+  service:
+    name: postgresql
+    state: restarted
+    enabled: no
+  when:
+    - inventory_hostname != groups['postgres'][0]
+
+#所有节点执行
+- name: Postgresql-pg | stop postgresql service
+  service:
+    name: postgresql
+    state: stopped
+    enabled: no
+
+- name: Postgresql-pg | copy evr.control to /usr/share/pgsql/extension/
+  template:
+    src: evr.control.j2
+    dest: /usr/share/pgsql/extension/evr.control
+    mode: 0644
+- name: Postgresql-pg | copy evr--0.0.2.sql to /usr/share/pgsql/extension/
+  template:
+    src: evr--0.0.2.sql.j2
+    dest: /usr/share/pgsql/extension/evr--0.0.2.sql
+    mode: 0644

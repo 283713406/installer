@@ -1,0 +1,12 @@
+---
+package: "/root/psql-{{ host_architecture }}.tar.gz"
+untar_package_dir: /opt/postgresql/package
+etcd_dir: /home/postgres
+etcd_member_name: |-
+  {% for host in groups['postgres'] %}
+  {%   if inventory_hostname == host %}{{ hostvars[host].etcd_member_name | default("etcd" + loop.index|string) }}{% endif %}
+  {% endfor %}
+etcd_peer_addresses: |-
+  {% for item in groups['postgres'] -%}
+    {{ hostvars[item].etcd_member_name | default("etcd" + loop.index|string) }}=http://{{ hostvars[item]['ansible_facts']['default_ipv4']['address'] }}:2380{% if not loop.last %},{% endif %}
+  {%- endfor %}

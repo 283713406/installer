@@ -1,0 +1,117 @@
+---
+- name: Postgresql-etcd | querry firewalld
+  shell: "rpm -q firewalld"
+  failed_when: false
+  register: firewalld_pkg
+  when:
+    - install_database
+- name: Postgresql-etcd | stop firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  when:
+    - firewalld_pkg.rc == 0
+    - install_database
+- name: Postgresql-etcd | stop NetworkManager
+  service:
+    name: NetworkManager
+    state: stopped
+    enabled: false
+  when:
+    - install_database
+- name: Postgresql-etcd | create host list from inventory
+  set_fact:
+    etc_hosts_inventory_block: |-
+      {%for host in groups['postgres'] %}
+      {{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }}  {{ hostvars[host]['ansible_facts']['fqdn'] }} {{ hostvars[host]['ansible_facts']['hostname'] }}
+      {% endfor %}
+  delegate_to: localhost
+  connection: local
+  delegate_facts: yes
+  run_once: yes
+  when:
+    - install_database
+
+- name: Postgresql-etcd | config hosts
+  blockinfile:
+    path: /etc/hosts
+    block: "{{ hostvars.localhost.etc_hosts_inventory_block }}"
+    state: present
+    create: yes
+    backup: yes
+    unsafe_writes: yes
+    marker: "# Postgresql inventory hosts {mark}"
+  when:
+    - install_database
+
+- name: Postgresql-etcd | create etcd directory
+  file:
+    path: "{{ etcd_dir }}/app"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+  when:
+    - install_database
+
+- name: Postgresql-etcd | untar etcd
+  unarchive:
+    src: "{{ untar_package_dir }}/etcd-v3.5.2-linux-{{ host_architecture }}.tar.gz"
+    dest: "{{ etcd_dir }}/app"
+    remote_src: yes
+  when:
+    - install_database
+- name: Postgresql-etcd | modify etcd dir name
+  shell: "mv {{ etcd_dir }}/app/etcd-v3.5.2-linux-{{ host_architecture }} {{ etcd_dir }}/app/etcd-v3.5.2"
+  failed_when: false
+  when:
+    - install_database
+- name: Postgresql-etcd | link etcd-v3.5.2 to etcd
+  file:
+    src: "{{ etcd_dir }}/app/etcd-v3.5.2"
+    dest: "{{ etcd_dir }}/app/etcd"
+    state: link
+  when:
+    - install_database
+- name: Postgresql-etcd | apply etcd.j2
+  template:
+    src: etcd.j2
+    dest: "{{ etcd_dir }}/app/etcd/start_etcd.sh"
+    mode: 0755
+  when:
+    - install_database
+- name: Postgresql-etcd | apply etcd.service.j2
+  template:
+    src: etcd.service.j2
+    dest: /usr/lib/systemd/system/etcd.service
+    mode: 0755
+  when:
+    - install_database
+- name: Postgresql-etcd | etcd daemon reload
+  shell: "systemctl daemon-reload"
+- name: Postgresql-etcd | start etcd server
+  service:
+    name: etcd
+    state: restarted
+    enabled: yes
+  when:
+    - install_database
+- name: Postgresql-etcd | ensure etcd endpoint status
+  shell: "{{ etcd_dir }}/app/etcd/etcdctl endpoint status --cluster -w table"
+  register: endpoint_status
+  when:
+    - install_database
+- debug:
+    var: endpoint_status.stdout
+  when:
+    - install_database
+- name: Postgresql-etcd | ensure etcd member_list
+  shell: "{{ etcd_dir }}/app/etcd/etcdctl member list -w table"
+  register: member_list
+  when:
+    - install_database
+- debug:
+    var: member_list.stdout
+  when:
+    - install_database

@@ -1,0 +1,11 @@
+[Unit]
+Description=etcd
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+ExecStart=/bin/bash -c "{{ etcd_dir }}/app/etcd/start_etcd.sh >> {{ etcd_dir }}/app/etcd/start_etcd.log 2>&1 &"
+ExecStop=/usr/bin/killall start_etcd
+
+[Install]
+WantedBy=multi-user.target

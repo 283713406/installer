@@ -1,0 +1,12 @@
+# 使用k8s外部MySQL时， is_external 设置为true
+# 提供的用户需要有所有的权限
+is_external: false
+mysql_uri: "127.0.0.1"
+mysql_port: "3306"
+mysql_user: "dbuser"
+mysql_pwd: "dbpwd"
+
+# 需要初始化的模块设置为true
+tianyu: true
+mirrors_update: true
+softshop: true

@@ -1,0 +1,36 @@
+[mysqld]
+# 指定全局唯一服务器ID，ID 可以为 1~65536 的任意一个。
+server-id=100
+
+# 指定二进制日志文件名称，同时会开启二进制日志文件
+# 默认MariaDB使用的是混合二进制日志文件，也就是命令和二进制的数据库改动将都将记录到二进制日志中
+log-bin=bin-log
+
+# 指定二进制日志文件的索引位置
+log-bin-index=bin-log.index
+# 指定服务器的监听端口默认3306，可以修改MariaDB的默认监听端口
+port=3306
+
+# 只保留 30 天内的日志
+expire_logs_days=30
+
+# 二进制日志文件格式
+binlog-format=ROW
+# ROW格式下日志的级别
+binlog-row-image=minimal
+# 此两项为打开从服务器崩溃二进制日志功能，信息记录在事务表而不是保存在文件
+master-info-repository=TABLE
+relay-log-info-repository=TABLE
+
+#innodb_log_file_size=30M
+#innodb_log_buffer_size=512M
+#innodb_strict_mode=0
+
+rpl-semi-sync-master-enabled = 1
+rpl-semi-sync-slave-enabled = 1
+log_slave_updates=1
+#开启无损半同步
+rpl_semi_sync_master_wait_point=AFTER_SYNC
+log-error
+
+max_connections=10000

@@ -1,0 +1,25 @@
+---
+_host_architecture_groups:
+  x86_64: amd64
+  aarch64: arm64
+  armv7l: arm
+host_architecture: >-
+  {%- if ansible_architecture in _host_architecture_groups -%}
+  {{ _host_architecture_groups[ansible_architecture] }}
+  {%- else -%}
+  {{ ansible_architecture }}
+  {%- endif -%}
+
+#外部的etcd地址，如192.168.0.1:2379
+#out_etcd_address:
+
+reset_etcd: false
+reset_pg: false
+reset_patroni: false
+reset_haproxy: false
+reset_keepalived: false
+
+#keepalived虚拟ip地址，配置为同一网段未使用的IP
+virtual_ip: 172.20.192.140/24
+
+virtual_router_id: 88

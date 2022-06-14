@@ -1,0 +1,14 @@
+---
+- name: Postgresql-keepalived-reset | stop keepalived service
+  service:
+    name: keepalived
+    state: stopped
+  failed_when: false
+
+- name: Postgresql-keepalived-reset | remove keepalived and keepalived package directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ untar_package_dir }}"
+    - /etc/keepalived/keepalived.conf

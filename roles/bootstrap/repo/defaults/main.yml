@@ -1,0 +1,2 @@
+---
+baseurl: 'http://{{ hostvars["deploy"]["ansible_host"] }}:8080/'

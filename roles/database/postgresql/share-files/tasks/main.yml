@@ -1,0 +1,36 @@
+---
+#所有节点执行
+- name: Postgresql | create postgres user
+  user:
+    name: postgres
+    state: present
+    create_home: true
+    password: "{{ 'postgres' | password_hash('sha512') }}"
+    generate_ssh_key: true
+  when:
+    - install_database
+
+- name: Postgresql | create home postgres directory
+  file:
+    path: "{{ pg_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+  when:
+    - install_database
+
+- name: Postgresql | create package directory
+  file:
+    path: "{{ untar_package_dir }}"
+    state: directory
+    mode: 0777
+  when:
+    - install_database
+
+- name: Postgresql | transform package
+  unarchive:
+    src: "{{ package }}"
+    dest: "{{ untar_package_dir }}"
+  when:
+    - install_database

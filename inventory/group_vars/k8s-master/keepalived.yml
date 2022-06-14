@@ -1,0 +1,8 @@
+#keepalived虚拟ip地址，配置为同一网段未使用的IP
+virtual_ip: 172.20.192.139
+
+virtual_router_id: 66
+
+reset_keepalived: false
+
+install_keepalived: false

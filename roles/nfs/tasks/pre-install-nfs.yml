@@ -1,0 +1,32 @@
+---
+- name: NFS | Get firewall service status
+  shell: service firewalld status
+  register: result_firewalld
+  ignore_errors: yes
+
+- name: NFS | Get firewall nfs service
+  shell: firewall-cmd --query-service=nfs
+  ignore_errors: yes
+  register: result_nfs
+  when:
+    - result_firewalld.rc == 0
+
+- name: NFS | Set up nfs firewall
+  shell: firewall-cmd --add-service=nfs
+  when:
+    - result_firewalld.rc == 0
+    - result_nfs.rc == 1
+
+- name: NFS | Get firewall ssh service
+  shell: firewall-cmd --query-service=ssh
+  register: result_ssh
+  ignore_errors: yes
+  when:
+    - result_firewalld.rc == 0
+
+- name: NFS | Set up ssh firewall
+  shell: firewall-cmd --add-service=ssh
+  when:
+    - result_firewalld.rc == 0
+    - result_ssh.rc == 1
+

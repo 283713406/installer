@@ -1,0 +1,75 @@
+---
+# 复制初始化MySQL所需文件
+- name: dbinit | Copy files
+  copy:
+    src: roles/dbinit
+    dest: /opt/temp
+
+# 初始化天域数据
+- name: dbinit | Init kcm via maxscale
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST=$(kubectl -n module get service/maxscale --no-headers | awk '{ print $3 }') \
+        -e USERNAME={{ maxscale_user }} -e PASSWORD={{ maxscale_pwd }} -e MYSQL_PORT={{ maxscale_port }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-tianyu.sh
+  when: 
+  - not is_external
+  - tianyu
+
+- name: dbinit | Init kcm via external mysql
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST={{ mysql_uri }} -e MYSQL_PORT={{ mysql_port }} \
+        -e USERNAME={{ mysql_user }} -e PASSWORD={{ mysql_pwd }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-tianyu.sh
+  when: 
+  - is_external
+  - tianyu
+
+# 初始化软件商店数据
+- name: dbinit | Init softshop via maxscale
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST=$(kubectl -n module get service/maxscale --no-headers | awk '{ print $3 }') \
+        -e USERNAME={{ maxscale_user }} -e PASSWORD={{ maxscale_pwd }} -e MYSQL_PORT={{ maxscale_port }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-softshop.sh
+  when: 
+  - not is_external
+  - softshop
+
+- name: dbinit | Init kcm softshop external mysql
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST={{ mysql_uri }} -e MYSQL_PORT={{ mysql_port }} \
+        -e USERNAME={{ mysql_user }} -e PASSWORD={{ mysql_pwd }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-softshop.sh
+  when: 
+  - is_external
+  - softshop
+
+# 初始化镜像源数据
+- name: dbinit | Init mirrors-update via maxscale
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST=$(kubectl -n module get service/maxscale --no-headers | awk '{ print $3 }') \
+        -e USERNAME={{ maxscale_user }} -e PASSWORD={{ maxscale_pwd }} -e MYSQL_PORT={{ maxscale_port }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-mirrors-update.sh
+  when: 
+  - not is_external
+  - mirrors_update
+
+- name: dbinit | Init kcm mirrors-update external mysql
+  shell: >
+    docker run --network host --rm -v /opt/temp/dbinit/files:/opt \
+        -e MYSQL_HOST={{ mysql_uri }} -e MYSQL_PORT={{ mysql_port }} \
+        -e USERNAME={{ mysql_user }} -e PASSWORD={{ mysql_pwd }} \
+        registry.kylincloud.org:4001/solution/dbinit/{{ host_architecture }}/mysql-job:0422 bash /opt/install-dbinit-mysql-mirrors-update.sh
+  when: 
+  - is_external
+  - mirrors_update
+
+# 删除初始化相关目录
+- name:  dbinit | Remove files
+  file:
+    path: "/opt/temp/dbinit"
+    state: absent

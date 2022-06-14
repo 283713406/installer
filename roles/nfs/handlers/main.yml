@@ -1,0 +1,22 @@
+---
+# handlers file for ansible-nfs-server
+- name: start rpcbind
+  service:
+    name: rpcbind
+    state: started
+
+- name: start nfs-server
+  service:
+    name: nfs-server
+    state: started
+
+- name: restart nfs-server
+  service:
+    name: nfs-server
+    state: restarted
+
+- name: enable nfs-server
+  service:
+    name: nfs
+    enabled: yes
+    state: started

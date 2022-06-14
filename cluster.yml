@@ -1,0 +1,47 @@
+---
+- hosts: all
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: true
+  roles:
+    - { role: bootstrap/repo, when: install_bootstrap|default(false) }
+
+- hosts: bootstrap
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: true
+  roles:
+    - { role: bootstrap, when: install_bootstrap|default(false) }
+
+- hosts: postgres
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: true
+  roles:
+    - { role: database/postgresql/etcd }
+    - { role: database/postgresql/pg }
+    - { role: database/postgresql/patroni }
+    - { role: database/postgresql/haproxy }
+    - { role: database/postgresql/keepalived }
+
+- hosts: mysql
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: true
+  roles:
+    - { role: database/mysql}
+
+- hosts: k8s-master
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: true
+  roles:
+    - { role: keepalived, tags: keepalived-alone }
+
+- hosts: nfs-servers
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+    - { role: nfs, when: not nfs_exist | default(false) }
+
+- hosts: deploy
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+    - { role: nfs, when: nfs_exist | default(false) }
+

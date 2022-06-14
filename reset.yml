@@ -1,0 +1,18 @@
+---
+- hosts: etcd:k8s-cluster:calico-rr
+  vars_prompt:
+    name: "reset_confirmation"
+    prompt: "Are you sure you want to reset cluster state? Type 'yes' to reset your cluster."
+    default: "no"
+    private: no
+
+  pre_tasks:
+    - name: check confirmation
+      fail:
+        msg: "Reset confirmation failed"
+      when: reset_confirmation != "yes"
+  roles:
+    - { role: apps}
+    - { role: database }
+    - { role: nfs }
+    - { role: bootstrap }

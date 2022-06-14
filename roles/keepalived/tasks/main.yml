@@ -1,0 +1,9 @@
+---
+- name: Postgresql-keepalived | install keepalived
+  include_tasks: install_keepalived.yml
+  when:
+    - install_keepalived
+- name: Postgresql-keepalived | reset keepalived
+  include_tasks: reset_keepalived.yml
+  when:
+    - reset_keepalived

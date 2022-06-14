@@ -1,0 +1,4 @@
+#!/bin/bash
+mysql -e "stop slave;"
+mysql -e "change master to master_host='{{ hostvars[groups['mysql'][0]]['ansible_facts']['default_ipv4']['address'] }}',master_user='{{ maxscale_monitor_user }}',master_password='{{ maxscale_monitor_password }}', MASTER_USE_GTID=slave_pos;"
+mysql -e "start slave;"

@@ -1,0 +1,6 @@
+---
+# 备份后需要恢复的文件
+backup_files:
+  - "/etc/hosts"
+  - "/etc/systemd/system/docker.service.d/docker-options.conf"
+  - "/etc/docker/daemon.json"

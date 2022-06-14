@@ -1,0 +1,36 @@
+#---------------------------------------------------------------------
+# Example configuration for a possible web application.  See the
+# full configuration options online.
+#
+#   https://www.haproxy.org/download/1.8/doc/configuration.txt
+#
+#---------------------------------------------------------------------
+
+global
+    log         127.0.0.1 local2
+    chroot      /etc/haproxy
+    pidfile     /var/run/haproxy.pid
+    user        haproxy
+    group       haproxy
+    daemon
+    maxconn     4000
+
+defaults
+    mode                    tcp
+    log                     127.0.0.1 local2 err
+    option                  tcplog
+    option                  dontlognull
+    retries                 3
+    timeout queue           30m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          30m
+    timeout check           5s
+    maxconn                 4000
+
+listen patroni
+    bind *:8000
+    balance roundrobin
+{% for host in groups['postgres'] %}
+    server {{ hostvars[host]['ansible_facts']['fqdn'] }} {{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }}:8008 weight 1 check inter 5000 rise 2 fall 2
+{% endfor %}

@@ -1,0 +1,31 @@
+[mysqld]
+# 注意，从服务器ID必须为全局唯一且大于主服务器ID（如果配置多从，修改此处ID即可）
+{% if inventory_hostname == groups['mysql'][1] %}
+server-id=200
+{% elif inventory_hostname == groups['mysql'][2] %}
+server-id=300
+{% endif %}
+log-bin=bin-log
+log-bin-index=bin-log.index
+# 配置将中继日志文件转储至relay-log中
+# 可以不配置中继日志，当服务器以从模式运行时，将会自动开启
+relay-log=relay-log
+# 指定 relay 日志的索引文件。
+relay-log-index=relay-log.index
+# 指定从服务器默认为只读模式，禁止任何写入操作
+read-only=ON
+# 只保留 30 天内的日志
+expire_logs_days=30
+port=3306
+#innodb_log_file_size=30M
+#innodb_log_buffer_size=512M
+#innodb_strict_mode=0
+
+rpl-semi-sync-master-enabled = 1
+rpl-semi-sync-slave-enabled = 1
+log_slave_updates=1
+#开启无损半同步
+rpl_semi_sync_master_wait_point=AFTER_SYNC
+log-error
+
+max_connections=10000

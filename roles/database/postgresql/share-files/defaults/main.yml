@@ -1,0 +1,3 @@
+package: "psql-{{ host_architecture }}.tar.gz"
+untar_package_dir: /opt/postgresql/package
+pg_dir: /home/postgres

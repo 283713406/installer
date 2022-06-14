@@ -1,0 +1,75 @@
+scope: pg_cluster
+namespace: /service
+name: {{ ansible_hostname }}
+
+log:
+  level: WARNING
+  traceback_level: ERROR
+  dir: {{ patroni_dir }}/patroni
+  file_num: 10
+  file_size: 104857600
+
+restapi:
+  listen: {{ ansible_default_ipv4.address }}:8008
+  connect_address: {{ ansible_default_ipv4.address }}:8008
+
+etcd:
+  host: {{ ansible_default_ipv4.address }}:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 20
+    retry_timeout: 20
+    maximum_lag_on_failover: 1048576
+    max_timelines_history: 0
+    master_start_timeout: 300
+    master_stop_timeout: 0
+    synchronous_mode: false
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        max_connections: 500
+        tcp_keepalives_count: "10"
+        tcp_keepalives_idle: "30"
+        tcp_keepalives_interval: "30"
+        superuser_reserved_connections: 100
+        max_locks_per_transaction: 64
+        max_worker_processes: 2
+        max_prepared_transactions: 0
+        wal_level: logical
+        wal_log_hints: on
+        track_commit_timestamp: off
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 4096MB  # wal_keep_size = wal_keep_segments * wal_segment_size = 128 * 32MB
+        hot_standby: "on"
+        listen_addresses: "*"
+        port: 5432
+        cluster_name: "pg_cluster"
+        archive_mode: on
+        archive_command: "cp %p {{ pg_dir }}/pgarch/%f"
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: {{ ansible_default_ipv4.address }}:5432
+  data_dir: {{ pg_dir }}/pgdata
+  pgpass: {{ pg_dir }}/.pgpass
+  pg_ctl_timeout: 60
+  use_pg_rewind: true
+  remove_data_directory_on_rewind_failure: false
+  remove_data_directory_on_diverged_timelines: true
+  authentication:
+    replication:
+      username: replica
+      password: replica
+    superuser:
+      username: postgres
+      password: 123123
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

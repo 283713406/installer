@@ -1,0 +1,6 @@
+---
+## Mysql configuration
+
+maxscale_user: "dbinit"
+maxscale_pwd: "123456"
+maxscale_port: "3306"

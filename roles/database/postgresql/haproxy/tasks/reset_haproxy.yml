@@ -1,0 +1,14 @@
+---
+- name: Postgresql-haproxy-reset | stop haproxy service
+  service:
+    name: haproxy
+    state: stopped
+  failed_when: false
+
+- name: Postgresql-haproxy-reset | remove haproxy and haproxy package directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ untar_package_dir }}"
+    - /etc/haproxy/haproxy.cfg

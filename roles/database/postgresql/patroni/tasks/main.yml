@@ -1,0 +1,9 @@
+---
+- name: Postgresql-patroni | install patroni
+  include_tasks: install_patroni.yml
+  when:
+    - install_database
+- name: Postgresql-patroni | reset patroni
+  include_tasks: reset_patroni.yml
+  when:
+    - uninstall_database or reset_patroni

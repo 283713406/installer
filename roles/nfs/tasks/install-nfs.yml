@@ -1,0 +1,12 @@
+---
+- name: "NFS | Pre-Install nfs"
+  include_tasks: pre-install-nfs.yml
+
+- name: NFS | Installing NFS Server and RPCBIND Packages into Kylin V10
+  shell: "yum install -y {{ item }}"
+  with_items:
+    - nfs-utils
+    - rpcbind
+
+- name: "NFS | Post-Install nfs"
+  include_tasks: post-install-nfs.yml

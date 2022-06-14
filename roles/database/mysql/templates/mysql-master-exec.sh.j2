@@ -1,0 +1,10 @@
+#!/bin/bash
+mysql -e "grant all privileges on *.* to '{{ dbinit_user }}'@'%' identified by '{{ dbinit_password }}'  with grant option;"
+#echo "授权用户dbinit已创建，密码：123456"
+
+mysql -e "grant super,replication client,replication slave,reload,process,show databases,event on *.* to '{{ maxscale_monitor_user }}'@'%' identified by '{{ maxscale_monitor_password }}';"
+#echo "maxscale监控账号已创建，密码：123456"
+
+mysql -e "grant select on mysql.* to {{ maxscale_route_user }}@'%' identified by '{{ maxscale_route_password }}';"
+mysql -e "GRANT SHOW DATABASES ON *.* TO {{ maxscale_route_user }}@'%'   identified by '{{ maxscale_route_password }}';"
+#echo "maxscale路由账号已创建，密码：123456"

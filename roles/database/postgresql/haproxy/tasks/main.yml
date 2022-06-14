@@ -1,0 +1,9 @@
+---
+- name: Postgresql-haproxy | install haproxy
+  include_tasks: install_haproxy.yml
+  when:
+    - install_database
+- name: Postgresql-haproxy | reset haproxy
+  include_tasks: reset_haproxy.yml
+  when:
+    - uninstall_database or reset_haproxy

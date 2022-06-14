@@ -1,0 +1,7 @@
+---
+# 根据环境情况修改对应的镜像仓库配置
+registries:
+  # 麒麟容器云应用组件镜像仓库，请修改服务所在节点IP地址
+  - ip: "172.20.43.55"
+    name: "registry.kylincloud.org"
+    port: "4001"
